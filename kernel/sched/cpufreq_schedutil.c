@@ -80,6 +80,8 @@ static DEFINE_PER_CPU(struct sugov_tunables *, cached_tunables);
 
 static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 {
+    s64 delta_ns;
+
     /* Check if the current CPU can update frequency */
     if (!cpufreq_this_cpu_can_update(sg_policy->policy))
         return false;
@@ -92,7 +94,7 @@ static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
     }
 
     /* Check if enough time has passed since the last frequency update */
-    s64 delta_ns = time - sg_policy->last_freq_update_time;
+    delta_ns = time - sg_policy->last_freq_update_time;
     return delta_ns >= sg_policy->min_rate_limit_ns;
 }
 
