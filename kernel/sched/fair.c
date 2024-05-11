@@ -1197,8 +1197,9 @@ static unsigned int task_nr_scan_windows(struct task_struct *p)
 	return rss / nr_scan_pages;
 }
 
-/* For sanitys sake, never scan more PTEs than MAX_SCAN_WINDOW MB/sec. */
+/* For sanity's sake, never scan more PTEs than MAX_SCAN_WINDOW MB/sec. */
 #define MAX_SCAN_WINDOW 2560
+#define SCAN_PERIOD_MIN_DIVIDER 1000
 
 static unsigned int task_scan_min(struct task_struct *p)
 {
@@ -1206,12 +1207,19 @@ static unsigned int task_scan_min(struct task_struct *p)
 	unsigned int scan, floor;
 	unsigned int windows = 1;
 
-	if (scan_size < MAX_SCAN_WINDOW)
-		windows = MAX_SCAN_WINDOW / scan_size;
-	floor = 1000 / windows;
+    if (scan_size < MAX_SCAN_WINDOW)
+    {
+        windows = MAX_SCAN_WINDOW / scan_size;
+        floor = SCAN_PERIOD_MIN_DIVIDER >> __builtin_ctz(windows); // Divide by windows using bitwise operations
+    }
+    else
+    {
+        floor = SCAN_PERIOD_MIN_DIVIDER; // No need to divide if scan_size >= MAX_SCAN_WINDOW
+    }
 
-	scan = sysctl_numa_balancing_scan_period_min / task_nr_scan_windows(p);
-	return max_t(unsigned int, floor, scan);
+    scan = sysctl_numa_balancing_scan_period_min >> __builtin_ctz(task_nr_scan_windows(p)); // Divide by number of windows using bitwise operations
+
+    return max_t(unsigned int, floor, scan);
 }
 
 static unsigned int task_scan_start(struct task_struct *p)
