@@ -80,40 +80,20 @@ static DEFINE_PER_CPU(struct sugov_tunables *, cached_tunables);
 
 static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 {
-	s64 delta_ns;
+    /* Check if the current CPU can update frequency */
+    if (!cpufreq_this_cpu_can_update(sg_policy->policy))
+        return false;
 
-	/*
-	 * Since cpufreq_update_util() is called with rq->lock held for
-	 * the @target_cpu, our per-CPU data is fully serialized.
-	 *
-	 * However, drivers cannot in general deal with cross-CPU
-	 * requests, so while get_next_freq() will work, our
-	 * sugov_update_commit() call may not for the fast switching platforms.
-	 *
-	 * Hence stop here for remote requests if they aren't supported
-	 * by the hardware, as calculating the frequency is pointless if
-	 * we cannot in fact act on it.
-	 *
-	 * This is needed on the slow switching platforms too to prevent CPUs
-	 * going offline from leaving stale IRQ work items behind.
-	 */
-	if (!cpufreq_this_cpu_can_update(sg_policy->policy))
-		return false;
+    /* Check if limits have changed */
+    if (unlikely(sg_policy->limits_changed)) {
+        sg_policy->limits_changed = false;
+        sg_policy->need_freq_update = true;
+        return true;
+    }
 
-	if (unlikely(sg_policy->limits_changed)) {
-		sg_policy->limits_changed = false;
-		sg_policy->need_freq_update = true;
-		return true;
-	}
-
-	/* No need to recalculate next freq for min_rate_limit_us
-	 * at least. However we might still decide to further rate
-	 * limit once frequency change direction is decided, according
-	 * to the separate rate limits.
-	 */
-
-	delta_ns = time - sg_policy->last_freq_update_time;
-	return delta_ns >= sg_policy->min_rate_limit_ns;
+    /* Check if enough time has passed since the last frequency update */
+    s64 delta_ns = time - sg_policy->last_freq_update_time;
+    return delta_ns >= sg_policy->min_rate_limit_ns;
 }
 
 static inline bool use_pelt(void)
