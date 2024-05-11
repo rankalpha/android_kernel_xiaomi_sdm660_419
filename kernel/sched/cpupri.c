@@ -297,29 +297,32 @@ void cpupri_set(struct cpupri *cp, int cpu, int newpri)
  */
 int cpupri_init(struct cpupri *cp)
 {
-	int i;
+        int i;
+        int ret = -ENOMEM; // Initialize ret with error value
 
 	for (i = 0; i < CPUPRI_NR_PRIORITIES; i++) {
 		struct cpupri_vec *vec = &cp->pri_to_cpu[i];
 
 		atomic_set(&vec->count, 0);
 		if (!zalloc_cpumask_var(&vec->mask, GFP_KERNEL))
-			goto cleanup;
+			goto cleanup; // Jump directly to cleanup on failure
 	}
 
 	cp->cpu_to_pri = kcalloc(nr_cpu_ids, sizeof(int), GFP_KERNEL);
 	if (!cp->cpu_to_pri)
-		goto cleanup;
+		goto cleanup; // Jump directly to cleanup on failure
 
 	for_each_possible_cpu(i)
 		cp->cpu_to_pri[i] = CPUPRI_INVALID;
 
-	return 0;
+	ret = 0; // Set success value
 
 cleanup:
-	for (i--; i >= 0; i--)
-		free_cpumask_var(cp->pri_to_cpu[i].mask);
-	return -ENOMEM;
+        // Cleanup loop now starts from i, no need to decrease i first
+        for (; i >= 0; i--)
+                free_cpumask_var(cp->pri_to_cpu[i].mask);
+
+        return ret; // Return ret, which holds the appropriate error code or success
 }
 
 /**
