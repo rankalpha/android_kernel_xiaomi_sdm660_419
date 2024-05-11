@@ -172,18 +172,18 @@ unsigned int sysctl_sched_cfs_bandwidth_slice		= 5000UL;
  *
  * (default: ~20%)
  */
-#define fits_capacity(cap, max, margin)	((cap) * margin < (max) * 1024)
+#define fits_capacity(cap, max, margin)        ((cap) < ((max) * (margin)) >> 5)
 
 unsigned int sched_capacity_margin_up[CPU_NR] = {
-			[0 ... CPU_NR-1] = 1078}; /* ~5% margin */
+	[0 ... CPU_NR-1] = 1078 >> 5}; // ~5% margin
 unsigned int sched_capacity_margin_down[CPU_NR] = {
-			[0 ... CPU_NR-1] = 1205}; /* ~15% margin */
+	[0 ... CPU_NR-1] = 1205 >> 5}; // ~15% margin
 unsigned int sched_capacity_margin_up_boosted[CPU_NR] = {
-	3658, 3658, 3658, 3658, 1078, 1078, 1078, 1078
-}; /* 72% margin for small, 5% for big */
+	3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5, 1078 >> 5, 1078 >> 5, 1078 >> 5, 1078 >> 5
+}; // 72% margin for small, 5% for big
 unsigned int sched_capacity_margin_down_boosted[CPU_NR] = {
-	3658, 3658, 3658, 3658, 3658, 3658, 3658, 3658
-}; /* not used for small cores, 72% margin for big */
+	3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5, 3658 >> 5
+}; // not used for small cores, 72% margin for big
 
 #ifdef CONFIG_SCHED_WALT
 /* 1ms default for 20ms window size scaled to 1024 */
