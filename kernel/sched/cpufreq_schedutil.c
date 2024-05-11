@@ -78,24 +78,17 @@ static DEFINE_PER_CPU(struct sugov_tunables *, cached_tunables);
 
 /************************ Governor internals ***********************/
 
-static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
+static inline bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 {
-    s64 delta_ns;
-
-    /* Check if the current CPU can update frequency */
-    if (!cpufreq_this_cpu_can_update(sg_policy->policy))
-        return false;
-
-    /* Check if limits have changed */
-    if (unlikely(sg_policy->limits_changed)) {
+    /* Check if the current CPU can update frequency and if limits have changed */
+    if (unlikely(!cpufreq_this_cpu_can_update(sg_policy->policy) || sg_policy->limits_changed)) {
         sg_policy->limits_changed = false;
         sg_policy->need_freq_update = true;
         return true;
     }
 
     /* Check if enough time has passed since the last frequency update */
-    delta_ns = time - sg_policy->last_freq_update_time;
-    return delta_ns >= sg_policy->min_rate_limit_ns;
+    return time - sg_policy->last_freq_update_time >= sg_policy->min_rate_limit_ns;
 }
 
 static inline bool use_pelt(void)
