@@ -4730,4 +4730,3 @@ static inline void f2fs_invalidate_internal_cache(struct f2fs_sb_info *sbi,
 
 #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
 #define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
-
